@@ -7,14 +7,61 @@ trigger:
 - master
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'
+
+variables:
+  CCACHE_DIR: $(Agent.BuildDirectory)/.ccache
+  CCACHE_COMPILERCHECK: '%compiler% -dumpmachine; %compiler% -dumpversion'
+  CCACHE_NOHASHDIR: 'true'
+  CCACHE_MAXSIZE: 1G
+  VERSION: $(Build.SourceVersion)
 
 steps:
-- task: Gradle@2
+- script: |
+    sudo apt-get update
+    sudo apt-get install -y ccache
+  displayName: 'Install ccache'
+
+- checkout: self
+  submodules: recursive
+  fetchDepth: 0
+
+- task: JavaToolInstaller@0
   inputs:
-    workingDirectory: ''
-    gradleWrapperFile: 'gradlew'
-    gradleOptions: '-Xmx3072m'
-    publishJUnitResults: true
-    testResultsFiles: '**/TEST-*.xml'
-    tasks: 'assembleDebug'
+    versionSpec: '17'
+    architecture: 'x64'
+
+- script: |
+    echo "VERSION=$(echo$(Build.SourceVersion) | head -c 10)" >> $(Agent.TempDirectory)/version.env
+  displayName: 'Retrieve version'
+
+- script: |
+    ccache -M $(CCACHE_MAXSIZE)
+  displayName: 'Set up ccache'
+
+- script: |
+    echo 'org.gradle.caching=true' >> gradle.properties
+    echo 'org.gradle.parallel=true' >> gradle.properties
+    echo 'org.gradle.vfs.watch=true' >> gradle.properties
+    echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
+    echo 'android.native.buildOutput=verbose' >> gradle.properties
+    ./gradlew -PappVerName=$(VERSION) assembleRelease assembleDebug
+  displayName: 'Build with Gradle'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'app/build/outputs/apk'
+    ArtifactName: 'snapshot'
+  condition: succeeded()
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'app/build/outputs/mapping'
+    ArtifactName: 'snapshot'
+  condition: succeeded()
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'app/release'
+    ArtifactName: 'snapshot'
+  condition: succeeded()
