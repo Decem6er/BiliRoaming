@@ -29,7 +29,9 @@ steps:
 - task: JavaToolInstaller@0
   inputs:
     versionSpec: '17'
-    architecture: 'x64'
+    jdkArchitectureOption: 'x64'
+    jdkSourceOption: 'PreInstalled'
+  displayName: "Setup JDK 17"
 
 - script: |
     echo "VERSION=$(echo$(Build.SourceVersion) | head -c 10)" >> $(Agent.TempDirectory)/version.env
@@ -45,9 +47,20 @@ steps:
     echo 'org.gradle.vfs.watch=true' >> gradle.properties
     echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
     echo 'android.native.buildOutput=verbose' >> gradle.properties
-    ./gradlew -PappVerName=$(VERSION) assembleRelease assembleDebug
-  displayName: 'Build with Gradle'
+  displayName: 'Modify gradle.properties'
 
+- task: Gradle@3
+  inputs:
+    gradleWrapperFile: 'gradlew'
+    options: '-PappVerName=$(VERSION)'
+    tasks: 'assembleRelease assembleDebug'
+    publishJUnitResults: true
+    testResultsFiles: '**/TEST-*.xml'
+    testRunTitle: 'Test Results'
+    javaHomeOption: 'JDKVersion'
+    sonarQubeRunAnalysis: false
+    checkStyleRunAnalysis: true
+    spotBugsAnalysis: false
 - task: PublishBuildArtifacts@1
   inputs:
     PathtoPublish: 'app/build/outputs/apk'
