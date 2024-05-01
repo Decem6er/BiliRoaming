@@ -24,7 +24,10 @@ steps:
 
 - checkout: self
   submodules: recursive
-  fetchDepth: 0
+
+- script: |
+    git checkout master
+  displayName: 'Checkout master branch'
 
 - task: JavaToolInstaller@0
   inputs:
