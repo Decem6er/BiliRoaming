@@ -48,6 +48,14 @@ steps:
     echo 'android.native.buildOutput=verbose' >> gradle.properties
   displayName: 'Modify gradle.properties'
 
+- script: |
+    #!/bin/bash
+    # 获取当前分支的提交次数
+    COMMIT_COUNT=$(git rev-list --count HEAD)
+    # 设置versionCode为提交次数
+    echo "android { defaultConfig { versionCode $COMMIT_COUNT } }" >> gradle.properties
+  displayName: 'Set versionCode based on commit count'
+
 - task: Gradle@3
   inputs:
     gradleWrapperFile: 'gradlew'
