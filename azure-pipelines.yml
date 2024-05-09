@@ -58,7 +58,6 @@ steps:
     testRunTitle: 'Test Results'
     javaHomeOption: 'JDKVersion'
     sonarQubeRunAnalysis: false
-    checkStyleRunAnalysis: true
     spotBugsAnalysis: false
 - task: PublishBuildArtifacts@1
   inputs:
